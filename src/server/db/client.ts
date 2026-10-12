@@ -62,7 +62,7 @@ const poolConfig: PoolConfig = {
   connectionString: connectionString || undefined,
   max: isCloudEnv ? 2 : (isRemoteDb ? 10 : 20),
   idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 3000,
+  connectionTimeoutMillis: 8000,
   ...(isRemoteDb && connectionString && !connectionString.includes('localhost')
     ? { ssl: { rejectUnauthorized: false } }
     : {}),
