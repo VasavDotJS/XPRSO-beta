@@ -2,15 +2,6 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-if (typeof process !== 'undefined') {
-  process.on('uncaughtException', (err) => {
-    console.error('CAUGHT UNCAUGHT EXCEPTION:', err);
-  });
-  process.on('unhandledRejection', (reason) => {
-    console.error('CAUGHT UNHANDLED REJECTION:', reason);
-  });
-}
-
 export async function GET() {
   const report: Record<string, any> = {
     status: 'pong',
@@ -20,81 +11,52 @@ export async function GET() {
 
   const rawUrl = process.env.DATABASE_URL || '';
   report.rawUrlLength = rawUrl.length;
-  report.startsWithPostgres = rawUrl.startsWith('postgres');
 
-  // Step 1: dotenv
   try {
-    await import('dotenv');
-    report.steps.dotenv = 'ok';
+    let cleaned = rawUrl.trim();
+    if (cleaned.startsWith('DATABASE_URL=')) cleaned = cleaned.slice(13).trim();
+    if (cleaned.startsWith('DATABASE_URL =')) cleaned = cleaned.slice(14).trim();
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+      cleaned = cleaned.slice(1, -1).trim();
+    }
+    const u = new URL(cleaned);
+    report.urlInfo = {
+      protocol: u.protocol,
+      host: u.host,
+      hostname: u.hostname,
+      port: u.port,
+      username: u.username ? u.username.slice(0, 10) + '...' : 'none',
+      hasPassword: Boolean(u.password),
+      passwordLength: u.password?.length || 0,
+      pathname: u.pathname,
+    };
   } catch (e: any) {
-    report.steps.dotenv = { error: e.message };
+    report.urlInfo = { parseError: e.message };
   }
 
-  // Step 2: pg import
-  try {
-    const pg = await import('pg');
-    report.steps.pg = 'ok';
-  } catch (e: any) {
-    report.steps.pg = { error: e.message };
-  }
-
-  // Step 3: drizzle-orm
-  try {
-    await import('drizzle-orm/node-postgres');
-    report.steps.drizzle = 'ok';
-  } catch (e: any) {
-    report.steps.drizzle = { error: e.message };
-  }
-
-  // Step 4: schema import
-  try {
-    const schema = await import('@/src/server/db/schema');
-    report.steps.schema = Boolean(schema.users) ? 'ok' : 'missing_users';
-  } catch (e: any) {
-    report.steps.schema = { error: e.message };
-  }
-
-  // Step 5: client import
+  // Step 1: client import
   let clientModule: any = null;
   try {
     clientModule = await import('@/src/server/db/client');
-    report.steps.client = Boolean(clientModule.db) ? 'ok' : 'missing_db';
+    report.steps.client = 'ok';
     report.hasConfiguredDb = clientModule.hasConfiguredDb;
   } catch (e: any) {
     report.steps.client = { error: e.message };
+    return NextResponse.json(report);
   }
 
-  // Step 6: raw pool query
+  // Step 2: query with 2s timeout
   if (clientModule?.pool) {
     try {
-      const res = await clientModule.pool.query('SELECT 1 as ok, current_database() as db');
-      report.steps.rawPoolQuery = res.rows;
+      const q = clientModule.pool.query('SELECT 1 as ok, current_database() as db');
+      const timer = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timed out after 2000ms')), 2000)
+      );
+      const res: any = await Promise.race([q, timer]);
+      report.steps.poolQuery = { ok: true, rows: res.rows };
     } catch (e: any) {
-      report.steps.rawPoolQuery = { error: e.message, code: e.code };
+      report.steps.poolQuery = { ok: false, error: e.message, code: e.code };
     }
-  }
-
-  // Step 7: Drizzle query
-  if (clientModule?.db) {
-    try {
-      const { users } = await import('@/src/server/db/schema');
-      const { sql } = await import('drizzle-orm');
-      const rows = await clientModule.db
-        .select({ count: sql<number>`count(*)` })
-        .from(users);
-      report.steps.drizzleQuery = rows;
-    } catch (e: any) {
-      report.steps.drizzleQuery = { error: e.message, code: e.code };
-    }
-  }
-
-  // Step 8: ensureDatabaseReady
-  try {
-    const { ensureDatabaseReady } = await import('@/src/server/db/migrate');
-    await ensureDatabaseReady();
-    report.steps.ensureDatabaseReady = 'ok';
-  } catch (e: any) {
-    report.steps.ensureDatabaseReady = { error: e.message, code: e.code };
   }
 
   return NextResponse.json(report);
