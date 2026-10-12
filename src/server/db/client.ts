@@ -16,10 +16,26 @@ const isCloudEnv = Boolean(
   (process.env.NODE_ENV === 'production' && !process.env.LOCAL_DEV)
 );
 
-const configuredUrl =
+function cleanConnectionString(raw?: string): string {
+  if (!raw) return '';
+  let url = raw.trim();
+  if (url.startsWith('DATABASE_URL=')) {
+    url = url.slice('DATABASE_URL='.length).trim();
+  } else if (url.startsWith('DATABASE_URL =')) {
+    url = url.slice('DATABASE_URL ='.length).trim();
+  }
+  if ((url.startsWith('"') && url.endsWith('"')) || (url.startsWith("'") && url.endsWith("'"))) {
+    url = url.slice(1, -1).trim();
+  }
+  return url;
+}
+
+const rawConfiguredUrl =
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL ||
   process.env.NETLIFY_DATABASE_URL;
+
+const configuredUrl = cleanConnectionString(rawConfiguredUrl);
 
 export const hasConfiguredDb = Boolean(configuredUrl);
 
