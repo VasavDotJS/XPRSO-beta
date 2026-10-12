@@ -35,7 +35,12 @@ export async function resetDatabase() {
   }
 }
 
-if (require.main === module || process.argv[1]?.endsWith('reset.ts')) {
+const isDirectCli =
+  typeof process !== 'undefined' &&
+  Boolean(process.argv?.[1]) &&
+  (process.argv[1].endsWith('reset.ts') || process.argv[1].endsWith('reset.js'));
+
+if (isDirectCli) {
   resetDatabase()
     .then(() => process.exit(0))
     .catch((err) => {
@@ -43,3 +48,4 @@ if (require.main === module || process.argv[1]?.endsWith('reset.ts')) {
       process.exit(1);
     });
 }
+

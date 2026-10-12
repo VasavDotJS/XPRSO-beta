@@ -5,6 +5,9 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[functions]
+  external_node_modules = ["@node-rs/argon2", "pg"]
+
 [build.environment]
   NODE_VERSION = "20"
   COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"

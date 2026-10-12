@@ -270,7 +270,12 @@ export async function seedDatabase() {
   console.log(`Seeding finished successfully! Generated ${invoiceSequence - 1} settled orders across 60 days.`);
 }
 
-if (require.main === module) {
+const isDirectCli =
+  typeof process !== 'undefined' &&
+  Boolean(process.argv?.[1]) &&
+  (process.argv[1].endsWith('seed.ts') || process.argv[1].endsWith('seed.js'));
+
+if (isDirectCli) {
   seedDatabase()
     .then(async () => {
       await pool.end();
@@ -282,3 +287,4 @@ if (require.main === module) {
       process.exit(1);
     });
 }
+

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { db } from '@/src/server/db/client';
+import { db, hasConfiguredDb } from '@/src/server/db/client';
 import { users } from '@/src/server/db/schema';
 import { getCurrentSession } from '@/src/server/auth/sessions';
 import { sql } from 'drizzle-orm';
@@ -9,6 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   try {
+    if (!hasConfiguredDb && (process.env.NETLIFY || process.env.VERCEL)) {
+      redirect('/setup');
+    }
+
     await ensureDatabaseReady();
 
     const adminCountResult = await db

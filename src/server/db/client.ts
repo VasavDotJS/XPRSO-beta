@@ -5,6 +5,10 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+export const hasConfiguredDb = Boolean(
+  process.env.DATABASE_URL || process.env.POSTGRES_URL
+);
+
 // Support DATABASE_URL (standard / Neon / Supabase) and POSTGRES_URL (Vercel Neon integration)
 const connectionString =
   process.env.DATABASE_URL ||
@@ -24,8 +28,10 @@ const poolConfig: PoolConfig = {
   connectionString,
   max: isRemoteDb ? 10 : 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ...(isRemoteDb ? { ssl: { rejectUnauthorized: false } } : {}),
+  connectionTimeoutMillis: 5000,
+  ...(isRemoteDb && (hasConfiguredDb || !connectionString.includes('localhost'))
+    ? { ssl: { rejectUnauthorized: false } }
+    : {}),
 };
 
 declare global {
@@ -43,6 +49,10 @@ export const db = drizzle(pool, { schema });
  * Health check helper to verify database connectivity.
  */
 export async function checkDbHealth(): Promise<boolean> {
+  if (!hasConfiguredDb && (process.env.NETLIFY || process.env.VERCEL)) {
+    console.warn('Database health check skipped: No DATABASE_URL or POSTGRES_URL configured.');
+    return false;
+  }
   try {
     const res = await pool.query('SELECT 1 as ok');
     return res.rows.length > 0 && res.rows[0].ok === 1;
@@ -51,3 +61,4 @@ export async function checkDbHealth(): Promise<boolean> {
     return false;
   }
 }
+

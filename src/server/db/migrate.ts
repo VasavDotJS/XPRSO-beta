@@ -1,5 +1,6 @@
-import { pool } from './client';
+import { pool, hasConfiguredDb } from './client';
 import * as dotenv from 'dotenv';
+
 
 dotenv.config();
 
@@ -278,6 +279,10 @@ export async function runMigrations() {
  * Safe to call on serverless startups or setup endpoints.
  */
 export async function ensureDatabaseReady(): Promise<void> {
+  if (!hasConfiguredDb && (process.env.NETLIFY || process.env.VERCEL)) {
+    console.warn('ensureDatabaseReady skipped: No database URL configured in cloud deployment.');
+    return;
+  }
   try {
     const res = await pool.query(`
       SELECT to_regclass('public.users') as users_table,
@@ -308,8 +313,14 @@ export async function ensureDatabaseReady(): Promise<void> {
   }
 }
 
-if (require.main === module) {
+const isDirectCli =
+  typeof process !== 'undefined' &&
+  Boolean(process.argv?.[1]) &&
+  (process.argv[1].endsWith('migrate.ts') || process.argv[1].endsWith('migrate.js'));
+
+if (isDirectCli) {
   runMigrations()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
+
