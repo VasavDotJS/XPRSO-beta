@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141419" />
+      <stop offset="100%" stop-color="#0A0A0C" />
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#0066FF" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base with Obsidian Glass Rim -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+  
+  <!-- Subtle Internal Highlight -->
+  <rect x="24" y="24" width="464" height="232" rx="104" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="2" />
+
+  <!-- Coffee Cup & Steam Monogram -->
+  <g transform="translate(136, 120)">
+    <!-- Steam waves -->
+    <path d="M 60 70 C 50 40 75 25 65 0" fill="none" stroke="url(#brand)" stroke-width="8" stroke-linecap="round" opacity="0.8" />
+    <path d="M 115 70 C 105 35 130 20 120 -5" fill="none" stroke="url(#brand)" stroke-width="8" stroke-linecap="round" />
+    <path d="M 170 70 C 160 40 185 25 175 0" fill="none" stroke="url(#brand)" stroke-width="8" stroke-linecap="round" opacity="0.8" />
+
+    <!-- Cup Body -->
+    <path d="M 30 100 L 205 100 C 205 190 175 230 117 230 C 60 230 30 190 30 100 Z" fill="#1C1C22" stroke="rgba(255,255,255,0.15)" stroke-width="6" />
+
+    <!-- Liquid Top Glow -->
+    <ellipse cx="117.5" cy="100" rx="87.5" ry="18" fill="url(#brand)" filter="url(#glow)" opacity="0.9" />
+
+    <!-- Handle -->
+    <path d="M 195 115 C 240 115 240 185 185 185" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="12" stroke-linecap="round" />
+
+    <!-- Saucer / Base Plate -->
+    <path d="M 10 240 C 60 252 175 252 225 240" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="10" stroke-linecap="round" />
+  </g>
+
+  <!-- Modern Clean Wordmark Below -->
+  <text x="256" y="440" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif" font-size="34" font-weight="800" letter-spacing="12" fill="#F3F4F6" text-anchor="middle">XPRSO</text>
+</svg>

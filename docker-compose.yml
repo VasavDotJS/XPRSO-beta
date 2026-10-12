@@ -1,0 +1,80 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-orderplat}
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+      - SESSION_SECRET=${SESSION_SECRET:-changeme-32-chars-minimum-secret-key}
+      - TZ_DEFAULT=${TZ_DEFAULT:-Asia/Kolkata}
+      - UPLOAD_DIR=/data/uploads
+    volumes:
+      - uploads_data:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-orderplat}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-orderplat}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      - PGHOST=db
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - PGDATABASE=${POSTGRES_DB:-orderplat}
+      - BACKUP_RETENTION_DAILY=${BACKUP_RETENTION_DAILY:-14}
+      - BACKUP_RETENTION_WEEKLY=${BACKUP_RETENTION_WEEKLY:-8}
+    volumes:
+      - ./backups:/backups
+    entrypoint: |
+      sh -c '
+        mkdir -p /backups
+        echo "0 2 * * * pg_dump -Fc > /backups/orderplat_\$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).dump && find /backups -name \"*.dump\" -mtime +14 -delete" > /etc/crontabs/root
+        crond -f -l 2
+      '
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  uploads_data:
