@@ -7,7 +7,7 @@ import { logAuditEvent } from '@/src/server/auth/audit';
 import { asc, eq } from 'drizzle-orm';
 
 const productCreateSchema = z.object({
-  categoryId: z.string().uuid(),
+  categoryId: z.string().uuid().optional().nullable().or(z.literal('')),
   name: z.string().min(1).max(150),
   description: z.string().max(500).optional(),
   dietTag: z.enum(['VEG', 'NON_VEG', 'VEGAN']).optional().nullable(),
@@ -58,9 +58,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.format() }, { status: 400 });
   }
 
+  const categoryId = parsed.data.categoryId && parsed.data.categoryId.trim() !== '' ? parsed.data.categoryId : null;
+
   const [product] = await db
     .insert(products)
-    .values(parsed.data)
+    .values({
+      ...parsed.data,
+      categoryId,
+    })
     .returning();
 
   // Record initial price history

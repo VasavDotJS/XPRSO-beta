@@ -7,7 +7,7 @@ import { logAuditEvent } from '@/src/server/auth/audit';
 import { eq } from 'drizzle-orm';
 
 const productUpdateSchema = z.object({
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional().nullable().or(z.literal('')),
   name: z.string().min(1).max(150).optional(),
   description: z.string().max(500).optional().nullable(),
   dietTag: z.enum(['VEG', 'NON_VEG', 'VEGAN']).optional().nullable(),
@@ -39,7 +39,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
 
-  const updates = { ...parsed.data, updatedAt: new Date() };
+  const updates: any = { ...parsed.data, updatedAt: new Date() };
+  if ('categoryId' in updates) {
+    updates.categoryId = updates.categoryId && updates.categoryId.trim() !== '' ? updates.categoryId : null;
+  }
 
   // Check price change
   if (updates.pricePaise !== undefined && updates.pricePaise !== existing.pricePaise) {

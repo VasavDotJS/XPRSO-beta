@@ -29,7 +29,7 @@ interface Category {
 
 interface Product {
   id: string;
-  categoryId: string;
+  categoryId?: string | null;
   categoryName?: string;
   name: string;
   description?: string;
@@ -87,9 +87,6 @@ export default function AdminMenuPage() {
 
       setCategories(catsData.categories || []);
       setProducts(prodsData.products || []);
-      if (catsData.categories?.length > 0 && !newProd.categoryId) {
-        setNewProd((p) => ({ ...p, categoryId: catsData.categories[0].id }));
-      }
     } catch (err) {
       console.error('Failed to load menu data:', err);
     } finally {
@@ -125,6 +122,10 @@ export default function AdminMenuPage() {
     e.preventDefault();
     try {
       const pricePaise = rupeesToPaise(newProd.priceRupees);
+      if (isNaN(pricePaise) || pricePaise < 0) {
+        alert('Please enter a valid selling price');
+        return;
+      }
       const costPaise = newProd.costRupees ? rupeesToPaise(newProd.costRupees) : null;
 
       const res = await fetch('/api/admin/products', {
@@ -132,7 +133,7 @@ export default function AdminMenuPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newProd.name.trim(),
-          categoryId: newProd.categoryId,
+          categoryId: newProd.categoryId && newProd.categoryId.trim() !== '' ? newProd.categoryId : null,
           pricePaise,
           costPaise,
           dietTag: newProd.dietTag,
@@ -145,7 +146,7 @@ export default function AdminMenuPage() {
         setIsAddProductOpen(false);
         setNewProd({
           name: '',
-          categoryId: categories[0]?.id || '',
+          categoryId: '',
           priceRupees: '',
           costRupees: '',
           dietTag: 'VEG',
@@ -153,9 +154,13 @@ export default function AdminMenuPage() {
           isAvailable: true,
         });
         loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to create product');
       }
     } catch (err) {
       console.error(err);
+      alert('Error creating product');
     }
   };
 
@@ -229,6 +234,7 @@ export default function AdminMenuPage() {
   const filteredProducts = products.filter((p) => {
     if (p.isArchived) return false;
     if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'uncategorized') return !p.categoryId;
     return p.categoryId === selectedCategory;
   });
 
@@ -323,6 +329,15 @@ export default function AdminMenuPage() {
               </Chip>
             );
           })}
+        {products.some((p) => !p.categoryId && !p.isArchived) && (
+          <Chip
+            active={selectedCategory === 'uncategorized'}
+            onClick={() => setSelectedCategory('uncategorized')}
+            count={products.filter((p) => !p.categoryId && !p.isArchived).length}
+          >
+            General / Unassigned
+          </Chip>
+        )}
       </div>
 
       {/* Products Table / Grid View */}
@@ -494,21 +509,29 @@ export default function AdminMenuPage() {
           />
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-              Category
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Category
+              </label>
+              <span className="text-[11px] font-medium text-gray-400">Optional</span>
+            </div>
             <select
               className="w-full h-12 px-4 rounded-2xl bg-[#EAEBED] dark:bg-[#101014] well-inset text-sm font-medium border border-black/5 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-brand"
               value={newProd.categoryId}
               onChange={(e) => setNewProd({ ...newProd, categoryId: e.target.value })}
-              required
             >
+              <option value="">No Category (General / Unassigned)</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+            {categories.length === 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                No categories created yet. The product will be saved under General / Unassigned.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

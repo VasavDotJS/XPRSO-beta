@@ -32,7 +32,7 @@ import {
 
 interface Product {
   id: string;
-  categoryId: string;
+  categoryId?: string | null;
   name: string;
   description?: string;
   dietTag?: string;
@@ -256,7 +256,9 @@ export default function OrderScreen() {
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const matchCat = selectedCategory === 'all' || p.categoryId === selectedCategory;
+      const matchCat =
+        selectedCategory === 'all' ||
+        (selectedCategory === 'uncategorized' ? !p.categoryId : p.categoryId === selectedCategory);
       const matchQuery =
         searchQuery === '' ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -479,6 +481,15 @@ export default function OrderScreen() {
                 </Chip>
               );
             })}
+            {products.some((p) => !p.categoryId) && categories.length > 0 && (
+              <Chip
+                active={selectedCategory === 'uncategorized'}
+                onClick={() => setSelectedCategory('uncategorized')}
+                count={products.filter((p) => !p.categoryId).length}
+              >
+                General
+              </Chip>
+            )}
           </div>
 
           {/* Product Cards Grid */}
