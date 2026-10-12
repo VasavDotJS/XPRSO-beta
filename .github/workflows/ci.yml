@@ -49,7 +49,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/orderplat_test
           SESSION_SECRET: ci-secret-must-be-at-least-32-characters-long
           APP_DOMAIN: localhost:3000
-        run: pnpm test
+        run: pnpm run db:migrate && pnpm test
 
       - name: Build Next.js App
         env:
