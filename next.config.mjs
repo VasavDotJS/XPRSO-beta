@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['@node-rs/argon2', 'pg', '@react-pdf/renderer', 'exceljs'],
+  serverExternalPackages: ['@node-rs/argon2', 'pg', '@react-pdf/renderer', 'pdfkit', 'exceljs'],
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./node_modules/pdfkit/**/*', './node_modules/@react-pdf/**/*'],
+  },
   experimental: {},
   async headers() {
     return [
