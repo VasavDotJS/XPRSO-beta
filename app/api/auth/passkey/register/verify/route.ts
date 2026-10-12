@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     const saved = await verifyPasskeyRegistration(
       auth.session!.user.id,
       body,
-      body.deviceLabel || 'My Device'
+      body.deviceLabel || 'My Device',
+      req
     );
 
     await logAuditEvent({

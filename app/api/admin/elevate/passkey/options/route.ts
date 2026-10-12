@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { options } = await getPasskeyLoginOptions();
+    const { options } = await getPasskeyLoginOptions(auth.session!.user.id, req);
     return NextResponse.json(options);
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to generate step-up options' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Failed to generate step-up options' }, { status: 400 });
   }
 }

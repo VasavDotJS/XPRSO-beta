@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const verifiedUser = await verifyPasskeyLogin(body);
+    const verifiedUser = await verifyPasskeyLogin(body, req);
 
     // Verify it matches the logged in admin
     if (verifiedUser.id !== auth.session!.user.id) {

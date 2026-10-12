@@ -69,14 +69,18 @@ export default function LoginPage() {
     setBiometricLoading(true);
 
     try {
-      // 1. Fetch passkey login options
-      const optRes = await fetch('/api/auth/passkey/login/options', { method: 'POST' });
+      // 1. Fetch passkey login options (pass username if entered, to target that user's enrolled credentials)
+      const optRes = await fetch('/api/auth/passkey/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() || undefined }),
+      });
       const options = await optRes.json();
       if (!optRes.ok) {
         throw new Error(options.error || 'Failed to initialize biometric login');
       }
 
-      // 2. Prompt user verification (Face ID / Fingerprint)
+      // 2. Prompt device user verification (Face ID / Touch ID / Fingerprint)
       const authResponse = await startAuthentication({ optionsJSON: options });
 
       // 3. Verify assertion with server
@@ -93,7 +97,13 @@ export default function LoginPage() {
 
       router.push('/order');
     } catch (err: any) {
-      setError(err.message || 'Biometric login failed or canceled');
+      if (err.name === 'NotAllowedError') {
+        setError('Biometric authentication was cancelled or not allowed by device settings.');
+      } else if (err.name === 'InvalidStateError') {
+        setError('No enrolled biometric passkey was found for this device.');
+      } else {
+        setError(err.message || 'Biometric login failed or cancelled');
+      }
       setBiometricLoading(false);
     }
   };

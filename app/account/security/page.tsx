@@ -104,7 +104,13 @@ export default function AccountSecurityPage() {
       setDeviceName('');
       loadPasskeys();
     } catch (err: any) {
-      setError(err.message || 'Passkey setup cancelled or failed');
+      if (err.name === 'NotAllowedError') {
+        setError('Passkey registration was cancelled or not allowed by device settings. Ensure biometric hardware is available.');
+      } else if (err.name === 'InvalidStateError') {
+        setError('A passkey for this device is already enrolled for your account.');
+      } else {
+        setError(err.message || 'Passkey setup cancelled or failed');
+      }
     } finally {
       setRegistering(false);
     }

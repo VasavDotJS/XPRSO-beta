@@ -6,7 +6,7 @@ import { logAuditEvent } from '@/src/server/auth/audit';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const user = await verifyPasskeyLogin(body);
+    const user = await verifyPasskeyLogin(body, req);
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
     const userAgent = req.headers.get('user-agent');
@@ -30,11 +30,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const host = req.headers.get('host') || '';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const isHttps = req.headers.get('x-forwarded-proto') === 'https';
+    const isSecure = isHttps || (!isLocal && process.env.NODE_ENV === 'production');
+
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,

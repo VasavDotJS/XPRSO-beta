@@ -90,7 +90,11 @@ export default function AdminGatePage() {
 
       router.push('/admin/menu');
     } catch (err: any) {
-      setError(err.message || 'Biometric step-up failed');
+      if (err.name === 'NotAllowedError') {
+        setError('Biometric verification cancelled or not allowed by device.');
+      } else {
+        setError(err.message || 'Biometric step-up failed');
+      }
       setLoading(false);
     }
   };

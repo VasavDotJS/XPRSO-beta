@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const options = await getPasskeyRegistrationOptions(auth.session!.user);
+    const options = await getPasskeyRegistrationOptions(auth.session!.user, req);
     return NextResponse.json(options);
   } catch (err: any) {
     console.error('Registration options error:', err);
