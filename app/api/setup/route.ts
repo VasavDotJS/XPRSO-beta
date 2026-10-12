@@ -57,14 +57,20 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    // Update cafe name in settings
+    // Upsert cafe name in settings
     await db
-      .update(settings)
-      .set({
+      .insert(settings)
+      .values({
+        id: 1,
         cafeName,
-        updatedAt: new Date(),
       })
-      .where(eq(settings.id, 1));
+      .onConflictDoUpdate({
+        target: settings.id,
+        set: {
+          cafeName,
+          updatedAt: new Date(),
+        },
+      });
 
     // Audit log
     await logAuditEvent({
