@@ -5,6 +5,9 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[functions]
+  node_bundler = "none"
+
 [build.environment]
   NODE_VERSION = "20"
   COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
