@@ -2,7 +2,7 @@
   "name": "xprso-order-plat",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@10.5.2",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -46,6 +46,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.16.2",
     "@playwright/test": "^1.50.1",
     "@types/node": "^22.13.4",
     "@types/pg": "^8.11.11",
