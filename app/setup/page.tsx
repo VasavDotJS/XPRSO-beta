@@ -85,25 +85,35 @@ export default function SetupPage() {
 
   if (alreadyConfigured) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-canvas-light dark:bg-canvas-dark">
         <Card variant="elevated" padding="lg" className="max-w-md w-full text-center">
           <div className="h-16 w-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Setup Already Completed
+            Business Already Enrolled
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-6">
-            An active administrator account is already configured for this café installation.
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-6 leading-relaxed">
+            An active business profile and master administrator are already enrolled for this café deployment. You can sign in to take orders or manage settings.
           </p>
-          <Button
-            variant="obsidian"
-            size="lg"
-            className="w-full"
-            onClick={() => router.push('/login')}
-          >
-            Go to Login Screen
-          </Button>
+          <div className="space-y-3">
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full font-bold"
+              onClick={() => router.push('/login')}
+            >
+              Sign In to Existing Business
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full font-semibold"
+              onClick={() => router.push('/admin/cafe')}
+            >
+              Manage Café Profile in Admin
+            </Button>
+          </div>
         </Card>
       </div>
     );
@@ -118,10 +128,10 @@ export default function SetupPage() {
             <Coffee className="w-7 h-7" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Welcome to XPRSO
+            Enroll Your Business
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            First-run initialization: set up your café profile and master admin
+            First-run initialization: set up your café profile and master administrator
           </p>
         </div>
 
@@ -206,7 +216,7 @@ export default function SetupPage() {
                 className="w-full"
                 rightIcon={<Sparkles className="w-4 h-4 ml-1" />}
               >
-                Complete Setup & Launch
+                Enroll Business & Launch
               </Button>
             </div>
           </form>

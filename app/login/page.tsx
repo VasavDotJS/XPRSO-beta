@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/src/ui/components/Card';
 import { Input } from '@/src/ui/components/Input';
 import { Button } from '@/src/ui/components/Button';
-import { Coffee, Fingerprint, Lock, User, ArrowRight } from 'lucide-react';
+import { Coffee, Fingerprint, Lock, User, ArrowRight, Building2, Sparkles } from 'lucide-react';
 import { startAuthentication } from '@simplewebauthn/browser';
 
 export default function LoginPage() {
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,9 +34,7 @@ export default function LoginPage() {
     fetch('/api/setup/status')
       .then((res) => res.json())
       .then((data) => {
-        if (data.needsSetup) {
-          router.push('/setup');
-        }
+        setNeedsSetup(Boolean(data.needsSetup));
       })
       .catch(() => {});
   }, [router]);
@@ -187,6 +186,33 @@ export default function LoginPage() {
               </p>
             </div>
           )}
+
+          {/* Enroll Business for First-Time Users */}
+          <div className="mt-6 pt-6 border-t border-black/[0.06] dark:border-white/[0.06]">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                New Café or First Time Here?
+              </span>
+              {needsSetup && (
+                <span className="px-2 py-0.5 rounded-full bg-brand/10 text-brand text-[10px] font-bold">
+                  Setup Required
+                </span>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => router.push('/setup')}
+              className="w-full gap-2 border-brand/20 hover:border-brand/40 text-brand dark:text-brand font-bold shadow-soft-sm"
+              leftIcon={<Building2 className="w-4 h-4 text-brand" />}
+            >
+              Enroll Business
+            </Button>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">
+              Set up your café profile, master admin account, and security PIN
+            </p>
+          </div>
         </Card>
       </div>
     </div>

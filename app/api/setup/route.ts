@@ -97,11 +97,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const host = req.headers.get('host') || '';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const isHttps = req.headers.get('x-forwarded-proto') === 'https';
+    const isSecure = isHttps || (!isLocal && process.env.NODE_ENV === 'production');
+
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,
