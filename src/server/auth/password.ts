@@ -33,43 +33,33 @@ async function scryptVerify(secret: string, hashStr: string): Promise<boolean> {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  try {
-    const argon2 = await import('@node-rs/argon2');
-    return await argon2.hash(password, ARGON2_OPTIONS);
-  } catch {
-    return await scryptHash(password);
-  }
+  return await scryptHash(password);
 }
 
 export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
+  if (passwordHash.startsWith('$scrypt$')) {
+    return await scryptVerify(password, passwordHash);
+  }
   try {
-    if (passwordHash.startsWith('$scrypt$')) {
-      return await scryptVerify(password, passwordHash);
-    }
     const argon2 = await import('@node-rs/argon2');
     return await argon2.verify(passwordHash, password, ARGON2_OPTIONS);
   } catch {
-    return await scryptVerify(password, passwordHash);
+    return false;
   }
 }
 
 export async function hashPin(pin: string): Promise<string> {
-  try {
-    const argon2 = await import('@node-rs/argon2');
-    return await argon2.hash(pin, ARGON2_OPTIONS);
-  } catch {
-    return await scryptHash(pin);
-  }
+  return await scryptHash(pin);
 }
 
 export async function verifyPin(pin: string, pinHash: string): Promise<boolean> {
+  if (pinHash.startsWith('$scrypt$')) {
+    return await scryptVerify(pin, pinHash);
+  }
   try {
-    if (pinHash.startsWith('$scrypt$')) {
-      return await scryptVerify(pin, pinHash);
-    }
     const argon2 = await import('@node-rs/argon2');
     return await argon2.verify(pinHash, pin, ARGON2_OPTIONS);
   } catch {
-    return await scryptVerify(pin, pinHash);
+    return false;
   }
 }

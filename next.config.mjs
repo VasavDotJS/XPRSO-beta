@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  serverExternalPackages: ['@node-rs/argon2', 'pg', '@react-pdf/renderer', 'pdfkit', 'exceljs'],
-  outputFileTracingIncludes: {
-    '/api/**/*': ['./node_modules/pdfkit/**/*', './node_modules/@react-pdf/**/*'],
-  },
+  output: process.env.DOCKER_BUILD ? 'standalone' : undefined,
+  serverExternalPackages: ['pg', '@react-pdf/renderer', 'pdfkit', 'exceljs'],
   experimental: {},
   async headers() {
     return [
