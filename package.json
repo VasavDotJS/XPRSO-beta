@@ -17,7 +17,6 @@
     "cli": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@node-rs/argon2": "^2.0.2",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-popover": "^1.1.6",
@@ -65,7 +64,6 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@node-rs/argon2",
       "esbuild"
     ]
   }

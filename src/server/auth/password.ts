@@ -3,14 +3,6 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(crypto.scrypt);
 
-// Argon2id options suitable for modern server-side authentication
-const ARGON2_OPTIONS = {
-  memoryCost: 19456, // 19 MiB
-  timeCost: 2,
-  outputLen: 32,
-  parallelism: 1,
-};
-
 async function scryptHash(secret: string): Promise<string> {
   const salt = crypto.randomBytes(16).toString('hex');
   const derivedKey = (await scryptAsync(secret, salt, 64)) as Buffer;
@@ -40,12 +32,7 @@ export async function verifyPassword(password: string, passwordHash: string): Pr
   if (passwordHash.startsWith('$scrypt$')) {
     return await scryptVerify(password, passwordHash);
   }
-  try {
-    const argon2 = await import('@node-rs/argon2');
-    return await argon2.verify(passwordHash, password, ARGON2_OPTIONS);
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 export async function hashPin(pin: string): Promise<string> {
@@ -56,10 +43,5 @@ export async function verifyPin(pin: string, pinHash: string): Promise<boolean> 
   if (pinHash.startsWith('$scrypt$')) {
     return await scryptVerify(pin, pinHash);
   }
-  try {
-    const argon2 = await import('@node-rs/argon2');
-    return await argon2.verify(pinHash, pin, ARGON2_OPTIONS);
-  } catch {
-    return false;
-  }
+  return false;
 }
