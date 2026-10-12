@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/server/db/client';
 import { orders, orderLines, settings } from '@/src/server/db/schema';
 import { requireWaiter } from '@/src/server/auth/rbac';
-import { generateOrderPdf } from '@/src/server/export/pdf';
 import { generateSingleOrderExcel } from '@/src/server/export/excel';
 import { eq } from 'drizzle-orm';
 
@@ -38,7 +37,8 @@ export async function GET(
     });
   }
 
-  // Default to PDF
+  // Default to PDF (lazy dynamic import to avoid top-level bundle evaluation crashes)
+  const { generateOrderPdf } = await import('@/src/server/export/pdf');
   const pdfBuffer = await generateOrderPdf(order, lines, cafeSettings, layout);
   return new NextResponse(pdfBuffer as any, {
     headers: {
@@ -47,3 +47,4 @@ export async function GET(
     },
   });
 }
+

@@ -38,4 +38,11 @@ export default async function HomePage() {
     console.error('HomePage redirect check error:', err);
     redirect('/setup');
   }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0C0A09]">
+      <div className="w-8 h-8 rounded-full border-2 border-[#D97706] border-t-transparent animate-spin" />
+    </div>
+  );
 }
+
