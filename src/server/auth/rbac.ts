@@ -14,20 +14,89 @@ export function validateCsrf(req: NextRequest): boolean {
     return true;
   }
 
-  const origin = req.headers.get('origin');
-  const host = req.headers.get('host');
-
-  if (!origin || !host) {
-    // In local dev/testing without origin header, allow if host matches
+  // 1. W3C Sec-Fetch-Site header: set by all modern browsers (Chrome, Firefox, Safari, Edge)
+  // and cannot be modified by JavaScript. "same-origin" or "none" are guaranteed safe.
+  const secFetchSite = req.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin' || secFetchSite === 'none') {
     return true;
   }
 
+  const originHeader = req.headers.get('origin') || req.headers.get('referer');
+  if (!originHeader || originHeader === 'null') {
+    // Direct server-to-server, curl, local scripts, or browsers omitting origin on same-origin
+    return true;
+  }
+
+  let originUrl: URL;
   try {
-    const originUrl = new URL(origin);
-    return originUrl.host === host;
+    originUrl = new URL(originHeader);
   } catch {
     return false;
   }
+
+  const originHost = originUrl.host.toLowerCase();
+  const originHostname = originUrl.hostname.toLowerCase();
+
+  // Build candidate allowed hosts
+  const candidateHosts = new Set<string>();
+
+  const hostHeader = req.headers.get('host');
+  if (hostHeader) candidateHosts.add(hostHeader.toLowerCase());
+
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  if (forwardedHost) candidateHosts.add(forwardedHost.toLowerCase());
+
+  try {
+    if (req.nextUrl?.host) candidateHosts.add(req.nextUrl.host.toLowerCase());
+  } catch {
+    // ignore
+  }
+
+  if (process.env.APP_DOMAIN) {
+    candidateHosts.add(process.env.APP_DOMAIN.toLowerCase());
+  }
+
+  // Check direct matches (with or without port)
+  for (const cand of candidateHosts) {
+    const candHostname = cand.split(':')[0];
+    if (originHost === cand || originHostname === candHostname) {
+      return true;
+    }
+  }
+
+  // Allow local loopback / private network addresses (localhost, 127.0.0.1, LAN IPs)
+  const isLocalOrPrivate = (h: string) => {
+    return (
+      h === 'localhost' ||
+      h === '127.0.0.1' ||
+      h === '0.0.0.0' ||
+      h === '::1' ||
+      h.startsWith('192.168.') ||
+      h.startsWith('10.') ||
+      h.startsWith('172.16.') ||
+      h.startsWith('172.17.') ||
+      h.startsWith('172.18.') ||
+      h.startsWith('172.19.') ||
+      h.startsWith('172.20.') ||
+      h.startsWith('172.21.') ||
+      h.startsWith('172.22.') ||
+      h.startsWith('172.23.') ||
+      h.startsWith('172.24.') ||
+      h.startsWith('172.25.') ||
+      h.startsWith('172.26.') ||
+      h.startsWith('172.27.') ||
+      h.startsWith('172.28.') ||
+      h.startsWith('172.29.') ||
+      h.startsWith('172.30.') ||
+      h.startsWith('172.31.')
+    );
+  };
+
+  if (isLocalOrPrivate(originHostname)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
