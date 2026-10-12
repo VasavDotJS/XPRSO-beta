@@ -13,5 +13,5 @@
   NODE_VERSION = "20"
   NODE_OPTIONS = "--max-old-space-size=4096"
   COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
-  PNPM_FLAGS = "--shamefully-hoist"
+  PNPM_FLAGS = "--node-linker=hoisted"
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
