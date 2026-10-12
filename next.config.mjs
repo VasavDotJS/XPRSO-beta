@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: process.env.DOCKER_BUILD ? 'standalone' : undefined,
+  output: 'standalone',
   serverExternalPackages: ['@node-rs/argon2', 'pg', '@react-pdf/renderer', 'exceljs'],
   experimental: {},
   async headers() {
