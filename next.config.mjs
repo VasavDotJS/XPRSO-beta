@@ -2,6 +2,7 @@
 const nextConfig = {
   output: process.env.DOCKER_BUILD ? 'standalone' : undefined,
   serverExternalPackages: ['pg', '@react-pdf/renderer', 'pdfkit', 'exceljs'],
+  productionBrowserSourceMaps: false,
   experimental: {},
   async headers() {
     return [
