@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Setup error:', err);
-    return NextResponse.json({ error: 'Failed to complete setup' }, { status: 500 });
+    return NextResponse.json({ error: err?.message || 'Failed to complete setup' }, { status: 500 });
   }
 }

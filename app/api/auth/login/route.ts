@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Login error:', err);
-    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
+    return NextResponse.json({ error: err?.message || 'Authentication failed' }, { status: 500 });
   }
 }
