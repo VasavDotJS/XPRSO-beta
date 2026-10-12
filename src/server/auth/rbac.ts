@@ -56,6 +56,18 @@ export function validateCsrf(req: NextRequest): boolean {
     candidateHosts.add(process.env.APP_DOMAIN.toLowerCase());
   }
 
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    candidateHosts.add(process.env.VERCEL_PROJECT_PRODUCTION_URL.toLowerCase());
+  }
+
+  if (process.env.VERCEL_URL) {
+    candidateHosts.add(process.env.VERCEL_URL.toLowerCase());
+  }
+
+  if (process.env.URL) {
+    candidateHosts.add(process.env.URL.replace(/^https?:\/\//, '').toLowerCase());
+  }
+
   // Check direct matches (with or without port)
   for (const cand of candidateHosts) {
     const candHostname = cand.split(':')[0];

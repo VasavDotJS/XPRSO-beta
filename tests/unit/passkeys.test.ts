@@ -33,18 +33,18 @@ describe('Unit: WebAuthn Passkeys & Biometric Configuration', () => {
     expect(config.expectedRPID).toContain('localhost');
   });
 
-  it('handles challenges securely with single-use consumption', () => {
+  it('handles challenges securely with single-use consumption', async () => {
     const key = `test_challenge_${Date.now()}`;
     const secret = 'random_challenge_string';
 
-    saveChallenge(key, secret, 'user-123');
-    const firstGet = getAndConsumeChallenge(key);
+    await saveChallenge(key, secret, 'user-123');
+    const firstGet = await getAndConsumeChallenge(key);
     expect(firstGet).not.toBeNull();
     expect(firstGet?.challenge).toBe(secret);
     expect(firstGet?.userId).toBe('user-123');
 
     // Second consumption must return null (replay attack prevention)
-    const secondGet = getAndConsumeChallenge(key);
+    const secondGet = await getAndConsumeChallenge(key);
     expect(secondGet).toBeNull();
   });
 

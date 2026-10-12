@@ -7,10 +7,10 @@ import {
   VerifiedAuthenticationResponse,
 } from '@simplewebauthn/server';
 import { db } from '../db/client';
-import { passkeys, users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { passkeys, users, authChallenges } from '../db/schema';
+import { eq, and, gt } from 'drizzle-orm';
 
-// In-memory challenge store (TTL 5 minutes)
+// In-memory challenge store fallback (TTL 5 minutes)
 interface StoredChallenge {
   challenge: string;
   userId?: string;
@@ -30,15 +30,56 @@ if (typeof setInterval !== 'undefined') {
   }, 5 * 60 * 1000);
 }
 
-export function saveChallenge(key: string, challenge: string, userId?: string): void {
+export async function saveChallenge(key: string, challenge: string, userId?: string): Promise<void> {
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  try {
+    await db
+      .insert(authChallenges)
+      .values({
+        id: key,
+        challenge,
+        userId: userId || null,
+        expiresAt,
+      })
+      .onConflictDoUpdate({
+        target: authChallenges.id,
+        set: {
+          challenge,
+          userId: userId || null,
+          expiresAt,
+        },
+      });
+  } catch (err) {
+    console.warn('Failed to persist auth challenge to DB, using in-memory store fallback:', err);
+  }
+
   challengeStore.set(key, {
     challenge,
     userId,
-    expiresAt: Date.now() + 5 * 60 * 1000,
+    expiresAt: expiresAt.getTime(),
   });
 }
 
-export function getAndConsumeChallenge(key: string): StoredChallenge | null {
+export async function getAndConsumeChallenge(key: string): Promise<StoredChallenge | null> {
+  try {
+    const now = new Date();
+    const rows = await db
+      .delete(authChallenges)
+      .where(and(eq(authChallenges.id, key), gt(authChallenges.expiresAt, now)))
+      .returning();
+
+    if (rows.length > 0) {
+      challengeStore.delete(key);
+      return {
+        challenge: rows[0].challenge,
+        userId: rows[0].userId || undefined,
+        expiresAt: rows[0].expiresAt.getTime(),
+      };
+    }
+  } catch (err) {
+    console.warn('DB challenge consumption failed, falling back to memory store:', err);
+  }
+
   const item = challengeStore.get(key);
   if (!item) return null;
   challengeStore.delete(key);
@@ -47,8 +88,10 @@ export function getAndConsumeChallenge(key: string): StoredChallenge | null {
 }
 
 export function getRpConfig(req?: { headers: { get(name: string): string | null } }) {
-  const appDomain = process.env.APP_DOMAIN || 'localhost:3000';
-  const configuredHost = appDomain.split(':')[0];
+  const vercelDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  const netlifyDomain = process.env.URL ? process.env.URL.replace(/^https?:\/\//, '') : undefined;
+  const configuredDomain = process.env.APP_DOMAIN || vercelDomain || netlifyDomain || 'localhost:3000';
+  const configuredHost = configuredDomain.replace(/^https?:\/\//, '').split(':')[0].split('/')[0];
 
   let requestHost = configuredHost;
   let isHttps = false;
@@ -56,20 +99,27 @@ export function getRpConfig(req?: { headers: { get(name: string): string | null 
   if (req) {
     const hostHeader = req.headers.get('x-forwarded-host') || req.headers.get('host');
     if (hostHeader) {
-      requestHost = hostHeader.split(':')[0];
+      requestHost = hostHeader.replace(/^https?:\/\//, '').split(':')[0].split('/')[0];
     }
     const protoHeader = req.headers.get('x-forwarded-proto');
     isHttps = protoHeader === 'https';
   } else {
-    isHttps = !appDomain.startsWith('localhost') && !appDomain.startsWith('127.0.0.1');
+    isHttps = !configuredDomain.startsWith('localhost') && !configuredDomain.startsWith('127.0.0.1');
   }
 
   // rpID: WebAuthn standard requires rpID to be a domain or 'localhost' (not an IP address)
-  const rpID = requestHost === '127.0.0.1' || requestHost === 'localhost'
+  const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(requestHost);
+  const rpID = requestHost === '127.0.0.1' || requestHost === 'localhost' || isIp
     ? 'localhost'
-    : (configuredHost === '127.0.0.1' ? 'localhost' : configuredHost);
+    : requestHost;
 
-  const expectedRPID = Array.from(new Set([rpID, 'localhost', configuredHost].filter(Boolean)));
+  const expectedRPID = Array.from(new Set([
+    rpID,
+    'localhost',
+    configuredHost,
+    vercelDomain?.split(':')[0],
+    netlifyDomain?.split(':')[0],
+  ].filter(Boolean) as string[]));
 
   // Build comprehensive list of expected origins so registration/verification works seamlessly
   const allowedOrigins = new Set<string>([
@@ -81,9 +131,20 @@ export function getRpConfig(req?: { headers: { get(name: string): string | null 
     'https://127.0.0.1:3000',
     'http://127.0.0.1',
     'https://127.0.0.1',
-    `http://${appDomain}`,
-    `https://${appDomain}`,
+    `http://${configuredHost}`,
+    `https://${configuredHost}`,
+    `http://${requestHost}`,
+    `https://${requestHost}`,
   ]);
+
+  if (vercelDomain) {
+    allowedOrigins.add(`https://${vercelDomain}`);
+    allowedOrigins.add(`http://${vercelDomain}`);
+  }
+  if (netlifyDomain) {
+    allowedOrigins.add(`https://${netlifyDomain}`);
+    allowedOrigins.add(`http://${netlifyDomain}`);
+  }
 
   if (req) {
     const originHeader = req.headers.get('origin');
@@ -97,7 +158,7 @@ export function getRpConfig(req?: { headers: { get(name: string): string | null 
   }
 
   const expectedOrigin = Array.from(allowedOrigins);
-  const origin = isHttps ? `https://${appDomain}` : `http://${appDomain}`;
+  const origin = isHttps ? `https://${requestHost}` : `http://${requestHost}`;
 
   return {
     rpID,
@@ -147,7 +208,7 @@ export async function getPasskeyRegistrationOptions(
     },
   });
 
-  saveChallenge(`reg_${user.id}`, options.challenge, user.id);
+  await saveChallenge(`reg_${user.id}`, options.challenge, user.id);
   return options;
 }
 
@@ -161,7 +222,7 @@ export async function verifyPasskeyRegistration(
   req?: { headers: { get(name: string): string | null } }
 ) {
   const { expectedRPID, expectedOrigin } = getRpConfig(req);
-  const challengeData = getAndConsumeChallenge(`reg_${userId}`);
+  const challengeData = await getAndConsumeChallenge(`reg_${userId}`);
 
   if (!challengeData) {
     throw new Error('WebAuthn challenge expired or not found. Please try again.');
@@ -260,7 +321,7 @@ export async function getPasskeyLoginOptions(
   });
 
   const challengeKey = `auth_${options.challenge}`;
-  saveChallenge(challengeKey, options.challenge, targetUserId);
+  await saveChallenge(challengeKey, options.challenge, targetUserId);
 
   return { options, challengeKey };
 }
@@ -305,7 +366,7 @@ export async function verifyPasskeyLogin(
   }
 
   const challengeKey = `auth_${challengeFromClient}`;
-  const challengeData = getAndConsumeChallenge(challengeKey);
+  const challengeData = await getAndConsumeChallenge(challengeKey);
 
   if (!challengeData) {
     throw new Error('Biometric authentication challenge expired or invalid. Please retry.');

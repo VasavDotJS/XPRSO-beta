@@ -23,3 +23,6 @@ This document tracks all non-trivial technical choices, schema adaptations, libr
 | D-017 | 2026-10-12 | Auto-save debouncing race guard (`isSettledRef`) and on-demand settlement flush | Prevents database immutability trigger rejections when staff quickly settles an order. |
 | D-018 | 2026-10-12 | Conditional `output: standalone` via `DOCKER_BUILD` environment variable | Produces lean minimal Docker containers while providing standard native Node.js runtime for local testing. |
 | D-019 | 2026-10-12 | Full Playwright E2E suite, PWA manifest, and rolling 14-day database backup scripts | Delivers deployment-ready production hardening for touch tablets and café operations. |
+| D-020 | 2026-10-12 | Serverless database architecture supporting Neon (recommended) & Supabase | Added automatic SSL detection, warm lambda connection pool caching (`globalThis.__pgPool`), and dual `DATABASE_URL`/`POSTGRES_URL` detection for zero-friction Vercel/Netlify deployment. |
+| D-021 | 2026-10-12 | Serverless-safe WebAuthn challenge persistence & self-provisioning DB migrations | Stored WebAuthn challenges in Postgres `auth_challenges` with atomic `DELETE ... RETURNING` consumption to work across stateless lambda instances; added `ensureDatabaseReady()` to automatically provision tables on first load without CLI steps. |
+

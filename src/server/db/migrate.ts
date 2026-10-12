@@ -38,6 +38,17 @@ export async function runMigrations() {
         last_used_at TIMESTAMPTZ
       );
 
+      CREATE TABLE IF NOT EXISTS auth_challenges (
+        id TEXT PRIMARY KEY,
+        challenge TEXT NOT NULL,
+        user_id TEXT,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE auth_challenges ALTER COLUMN user_id TYPE TEXT;
+
+      CREATE INDEX IF NOT EXISTS auth_challenges_expires_at_idx ON auth_challenges(expires_at);
+
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -72,7 +83,7 @@ export async function runMigrations() {
 
       CREATE TABLE IF NOT EXISTS products (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category_id UUID NOT NULL REFERENCES categories(id),
+        category_id UUID REFERENCES categories(id),
         name TEXT NOT NULL,
         description TEXT,
         diet_tag TEXT,
@@ -259,6 +270,41 @@ export async function runMigrations() {
     throw err;
   } finally {
     client.release();
+  }
+}
+
+/**
+ * Automatically ensures tables and triggers are provisioned.
+ * Safe to call on serverless startups or setup endpoints.
+ */
+export async function ensureDatabaseReady(): Promise<void> {
+  try {
+    const res = await pool.query(`
+      SELECT to_regclass('public.users') as users_table,
+             to_regclass('public.auth_challenges') as challenges_table;
+    `);
+
+    const hasUsers = Boolean(res.rows[0]?.users_table);
+    const hasChallenges = Boolean(res.rows[0]?.challenges_table);
+
+    if (!hasUsers) {
+      console.log('Database not yet initialized. Running automatic migrations...');
+      await runMigrations();
+    } else if (!hasChallenges) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS auth_challenges (
+          id TEXT PRIMARY KEY,
+          challenge TEXT NOT NULL,
+          user_id TEXT,
+          expires_at TIMESTAMPTZ NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        ALTER TABLE auth_challenges ALTER COLUMN user_id TYPE TEXT;
+        CREATE INDEX IF NOT EXISTS auth_challenges_expires_at_idx ON auth_challenges(expires_at);
+      `);
+    }
+  } catch (err) {
+    console.warn('ensureDatabaseReady check failed:', err);
   }
 }
 

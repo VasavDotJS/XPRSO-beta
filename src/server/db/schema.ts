@@ -41,6 +41,15 @@ export const passkeys = pgTable('passkeys', {
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
 });
 
+// --- Serverless-Safe WebAuthn Challenges ---
+export const authChallenges = pgTable('auth_challenges', {
+  id: text('id').primaryKey(),
+  challenge: text('challenge').notNull(),
+  userId: text('user_id'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // --- Sessions ---
 export const sessions = pgTable(
   'sessions',

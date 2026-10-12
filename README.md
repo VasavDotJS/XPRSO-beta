@@ -138,7 +138,26 @@ pnpm build
 
 ---
 
-## 6. Production Deployment (Docker Compose)
+## 6. One-Click Cloud Deployment (Vercel / Netlify + Neon / Supabase)
+
+XPRSO is structured for serverless cloud deployment with zero infrastructure overhead.
+
+### Option 1: Vercel + Neon (Recommended 🏆)
+1. **Push to GitHub:** Push your repository to GitHub.
+2. **Import to Vercel:** Go to [vercel.com/new](https://vercel.com/new) and select the repository.
+3. **Connect Neon Database:** In the Vercel Project settings under **Storage**, click **Connect Store** → **Neon** (or paste your Neon pooled connection string as `DATABASE_URL`).
+4. **Deploy:** Click **Deploy**. Your database tables and immutability triggers will be auto-provisioned upon first visit!
+
+### Option 2: Netlify + Supabase / Neon
+1. Import the repository at [app.netlify.com](https://app.netlify.com).
+2. Set the `DATABASE_URL` environment variable with your Neon or Supabase connection string (`?sslmode=require`).
+3. Click **Deploy**.
+
+For detailed setup, see the complete [Cloud Deployment Guide](docs/DEPLOYMENT.md).
+
+---
+
+## 7. Self-Hosted Production Deployment (Docker Compose)
 
 Deploy with a single command:
 ```bash
