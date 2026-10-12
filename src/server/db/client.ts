@@ -16,33 +16,33 @@ const isCloudEnv = Boolean(
   (process.env.NODE_ENV === 'production' && !process.env.LOCAL_DEV)
 );
 
-// Cloud Postgres fallback for hosted Supabase production pooler
-const CLOUD_FALLBACK_URL =
-  'postgresql://postgres.youuxiwmpycamebavwdv:vlonevasu123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres';
+const configuredUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.NETLIFY_DATABASE_URL;
 
-const configuredUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
-export const hasConfiguredDb = Boolean(configuredUrl || isCloudEnv);
+export const hasConfiguredDb = Boolean(configuredUrl);
 
 const connectionString =
   configuredUrl ||
   (isCloudEnv
-    ? CLOUD_FALLBACK_URL
+    ? ''
     : 'postgres://postgres:postgres@localhost:5432/orderplat');
 
 const isRemoteDb =
-  connectionString.includes('neon.tech') ||
-  connectionString.includes('supabase.co') ||
-  connectionString.includes('pooler.supabase.com') ||
-  connectionString.includes('sslmode=require') ||
-  isCloudEnv;
+  Boolean(connectionString) &&
+  (connectionString.includes('neon.tech') ||
+    connectionString.includes('supabase.co') ||
+    connectionString.includes('pooler.supabase.com') ||
+    connectionString.includes('sslmode=require') ||
+    isCloudEnv);
 
 const poolConfig: PoolConfig = {
-  connectionString,
+  connectionString: connectionString || undefined,
   max: isRemoteDb ? 10 : 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  ...(isRemoteDb && !connectionString.includes('localhost')
+  ...(isRemoteDb && connectionString && !connectionString.includes('localhost')
     ? { ssl: { rejectUnauthorized: false } }
     : {}),
 };
@@ -66,6 +66,9 @@ export const db = drizzle(pool, { schema });
  */
 export async function checkDbHealth(): Promise<boolean> {
   try {
+    if (!connectionString) {
+      return false;
+    }
     const res = await pool.query('SELECT 1 as ok');
     return res.rows.length > 0 && res.rows[0].ok === 1;
   } catch (err: any) {
