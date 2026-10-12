@@ -3,22 +3,35 @@ import { db } from '@/src/server/db/client';
 import { users } from '@/src/server/db/schema';
 import { getCurrentSession } from '@/src/server/auth/sessions';
 import { sql } from 'drizzle-orm';
+import { ensureDatabaseReady } from '@/src/server/db/migrate';
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const adminCountResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(users)
-    .where(sql`'ADMIN' = ANY(${users.roles}) AND ${users.isActive} = true`);
+  try {
+    await ensureDatabaseReady();
 
-  const hasAdmin = Number(adminCountResult[0]?.count || 0) > 0;
-  if (!hasAdmin) {
+    const adminCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(sql`'ADMIN' = ANY(${users.roles}) AND ${users.isActive} = true`);
+
+    const hasAdmin = Number(adminCountResult[0]?.count || 0) > 0;
+    if (!hasAdmin) {
+      redirect('/setup');
+    }
+
+    const session = await getCurrentSession();
+    if (!session) {
+      redirect('/login');
+    }
+
+    redirect('/order');
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw err;
+    }
+    console.error('HomePage redirect check error:', err);
     redirect('/setup');
   }
-
-  const session = await getCurrentSession();
-  if (!session) {
-    redirect('/login');
-  }
-
-  redirect('/order');
 }
