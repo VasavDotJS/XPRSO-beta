@@ -27,6 +27,11 @@ function cleanConnectionString(raw?: string): string {
   if ((url.startsWith('"') && url.endsWith('"')) || (url.startsWith("'") && url.endsWith("'"))) {
     url = url.slice(1, -1).trim();
   }
+  // If connecting to Supabase pooler on transaction port 6543, route to session port 5432
+  // to support Drizzle ORM prepared statements and prevent PgBouncer transaction freeze in Lambda
+  if (url.includes('.pooler.supabase.com:6543')) {
+    url = url.replace('.pooler.supabase.com:6543', '.pooler.supabase.com:5432');
+  }
   return url;
 }
 
@@ -55,9 +60,9 @@ const isRemoteDb =
 
 const poolConfig: PoolConfig = {
   connectionString: connectionString || undefined,
-  max: isRemoteDb ? 10 : 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: isCloudEnv ? 2 : (isRemoteDb ? 10 : 20),
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 3000,
   ...(isRemoteDb && connectionString && !connectionString.includes('localhost')
     ? { ssl: { rejectUnauthorized: false } }
     : {}),
