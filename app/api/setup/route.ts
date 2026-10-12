@@ -7,6 +7,10 @@ import { createSession, elevateSession, SESSION_COOKIE_NAME } from '@/src/server
 import { logAuditEvent } from '@/src/server/auth/audit';
 import { sql, eq } from 'drizzle-orm';
 
+import { ensureDatabaseReady } from '@/src/server/db/migrate';
+
+export const dynamic = 'force-dynamic';
+
 const setupSchema = z.object({
   username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_.-]+$/),
   password: z.string().min(6).max(100),
@@ -17,6 +21,8 @@ const setupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureDatabaseReady();
+
     const adminCountResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(users)
@@ -97,10 +103,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const host = req.headers.get('host') || '';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-    const isHttps = req.headers.get('x-forwarded-proto') === 'https';
-    const isSecure = isHttps || (!isLocal && process.env.NODE_ENV === 'production');
+    const isHttps = req.headers.get('x-forwarded-proto') === 'https' || req.url.startsWith('https:');
+    const isSecure = isHttps;
+
 
     response.cookies.set({
       name: SESSION_COOKIE_NAME,

@@ -116,6 +116,7 @@ export function getRpConfig(req?: { headers: { get(name: string): string | null 
   const expectedRPID = Array.from(new Set([
     rpID,
     'localhost',
+    'xprso.netlify.app',
     configuredHost,
     vercelDomain?.split(':')[0],
     netlifyDomain?.split(':')[0],
@@ -131,6 +132,8 @@ export function getRpConfig(req?: { headers: { get(name: string): string | null 
     'https://127.0.0.1:3000',
     'http://127.0.0.1',
     'https://127.0.0.1',
+    'https://xprso.netlify.app',
+    'http://xprso.netlify.app',
     `http://${configuredHost}`,
     `https://${configuredHost}`,
     `http://${requestHost}`,

@@ -27,12 +27,17 @@ export default function SetupPage() {
     fetch('/api/setup/status')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.needsSetup) {
+        if (data && data.hasAdmin === true) {
           setAlreadyConfigured(true);
+        } else {
+          setAlreadyConfigured(false);
         }
         setChecking(false);
       })
-      .catch(() => setChecking(false));
+      .catch(() => {
+        setAlreadyConfigured(false);
+        setChecking(false);
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

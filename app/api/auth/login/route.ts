@@ -8,6 +8,9 @@ import { createSession, SESSION_COOKIE_NAME } from '@/src/server/auth/sessions';
 import { logAuditEvent } from '@/src/server/auth/audit';
 import { eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
+
 const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
@@ -100,10 +103,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const host = req.headers.get('host') || '';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-    const isHttps = req.headers.get('x-forwarded-proto') === 'https';
-    const isSecure = isHttps || (!isLocal && process.env.NODE_ENV === 'production');
+    const isHttps = req.headers.get('x-forwarded-proto') === 'https' || req.url.startsWith('https:');
+    const isSecure = isHttps;
+
 
     response.cookies.set({
       name: SESSION_COOKIE_NAME,

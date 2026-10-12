@@ -104,7 +104,12 @@ export function validateCsrf(req: NextRequest): boolean {
     );
   };
 
-  if (isLocalOrPrivate(originHostname)) {
+  // Allow Netlify, Vercel, and Cloud deployment origins
+  if (
+    originHostname.endsWith('.netlify.app') ||
+    originHostname.endsWith('.vercel.app') ||
+    isLocalOrPrivate(originHostname)
+  ) {
     return true;
   }
 
