@@ -1,43 +1,40 @@
-import { redirect } from 'next/navigation';
-import { db, hasConfiguredDb } from '@/src/server/db/client';
-import { users } from '@/src/server/db/schema';
-import { getCurrentSession } from '@/src/server/auth/sessions';
-import { sql } from 'drizzle-orm';
-import { ensureDatabaseReady } from '@/src/server/db/migrate';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default async function HomePage() {
-  try {
-    if (!hasConfiguredDb && (process.env.NETLIFY || process.env.VERCEL)) {
-      redirect('/setup');
+export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    async function initNavigation() {
+      try {
+        const setupRes = await fetch('/api/setup/status');
+        if (setupRes.ok) {
+          const data = await setupRes.json();
+          if (data.needsSetup) {
+            router.replace('/setup');
+            return;
+          }
+        }
+
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData?.user) {
+            router.replace('/order');
+            return;
+          }
+        }
+
+        router.replace('/login');
+      } catch {
+        router.replace('/setup');
+      }
     }
 
-    await ensureDatabaseReady();
-
-    const adminCountResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(users)
-      .where(sql`'ADMIN' = ANY(${users.roles}) AND ${users.isActive} = true`);
-
-    const hasAdmin = Number(adminCountResult[0]?.count || 0) > 0;
-    if (!hasAdmin) {
-      redirect('/setup');
-    }
-
-    const session = await getCurrentSession();
-    if (!session) {
-      redirect('/login');
-    }
-
-    redirect('/order');
-  } catch (err: any) {
-    if (err?.digest?.startsWith('NEXT_REDIRECT')) {
-      throw err;
-    }
-    console.error('HomePage redirect check error:', err);
-    redirect('/setup');
-  }
+    initNavigation();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0C0A09]">
@@ -45,4 +42,3 @@ export default async function HomePage() {
     </div>
   );
 }
-
